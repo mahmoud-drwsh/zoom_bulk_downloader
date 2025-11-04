@@ -3,7 +3,6 @@
 import requests
 from pathlib import Path
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from .utils import debug
 
 
@@ -23,9 +22,7 @@ def sanitize_filename(filename):
 
 def get_download_directory():
     """Create and return the download directory path."""
-    downloads_dir = Path.home() / "Downloads"
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    download_dir = downloads_dir / f"zoom_downloads_{timestamp}"
+    download_dir = Path.home() / "Videos" / "raw"
     download_dir.mkdir(parents=True, exist_ok=True)
     return download_dir
 
@@ -107,12 +104,12 @@ def download_video(video_info, download_dir, max_retries=3):
     return (False, None, "Max retries exceeded")
 
 
-def download_all_videos(video_urls, max_workers=5):
-    """Download all videos in parallel.
+def download_all_videos(video_urls, max_workers=None):
+    """Download all videos sequentially (one at a time), starting with the latest meeting.
     
     Args:
         video_urls: List of video info dictionaries
-        max_workers: Number of parallel download threads
+        max_workers: Deprecated parameter (kept for backward compatibility, ignored)
         
     Returns:
         Tuple of (successful_downloads, failed_downloads, download_dir)
@@ -124,28 +121,40 @@ def download_all_videos(video_urls, max_workers=5):
     download_dir = get_download_directory()
     debug(f"Download directory: {download_dir}")
     
+    # Sort videos by date (newest first) before downloading
+    def get_sort_key(video):
+        """Extract date for sorting, handling various date formats."""
+        date_str = video.get('date', 'unknown_date')
+        if date_str == 'unknown_date':
+            # Put unknown dates at the end
+            return datetime.min.date()
+        try:
+            # Parse date string in format YYYY-MM-DD
+            return datetime.strptime(date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            # If date can't be parsed, put at the end
+            return datetime.min.date()
+    
+    # Sort by date descending (newest first)
+    sorted_videos = sorted(video_urls, key=get_sort_key, reverse=True)
+    debug(f"Sorted {len(sorted_videos)} videos by date (newest first)")
+    
     successful = []
     failed = []
     
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_video = {
-            executor.submit(download_video, video, download_dir): video
-            for video in video_urls
-        }
-        
-        for future in as_completed(future_to_video):
-            video = future_to_video[future]
-            try:
-                success, filepath, error = future.result()
-                if success:
-                    successful.append((video, filepath))
-                    debug(f"✓ Downloaded: {video.get('topic', 'Unknown')} ({video.get('date', 'unknown')})")
-                else:
-                    failed.append((video, error))
-                    debug(f"✗ Failed: {video.get('topic', 'Unknown')} - {error}")
-            except Exception as exc:
-                failed.append((video, str(exc)))
-                debug(f"✗ Exception downloading {video.get('topic', 'Unknown')}: {exc}")
+    # Download videos sequentially (one at a time), starting with the latest
+    for video in sorted_videos:
+        try:
+            success, filepath, error = download_video(video, download_dir)
+            if success:
+                successful.append((video, filepath))
+                debug(f"✓ Downloaded: {video.get('topic', 'Unknown')} ({video.get('date', 'unknown')})")
+            else:
+                failed.append((video, error))
+                debug(f"✗ Failed: {video.get('topic', 'Unknown')} - {error}")
+        except Exception as exc:
+            failed.append((video, str(exc)))
+            debug(f"✗ Exception downloading {video.get('topic', 'Unknown')}: {exc}")
     
     return (successful, failed, download_dir)
 
