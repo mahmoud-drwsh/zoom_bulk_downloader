@@ -57,9 +57,11 @@ def list_video_urls_for_user(access_token, user, max_workers=6):
         # Check for passcode in various possible field names
         passcode = rec.get("recording_play_passcode") or rec.get("password") or rec.get("passcode") or ""
         
+        # Process each recording file in the meeting
+        # A meeting can have multiple files (e.g., gallery view, speaker view, shared screen, etc.)
         for f in rec.get("recording_files", []):
             file_type = f.get("file_type", "").lower()
-            if file_type != "mp4":  # only keep video
+            if file_type != "mp4":  # only keep video files
                 continue
             
             download_url = f.get("download_url")
@@ -88,13 +90,17 @@ def list_video_urls_for_user(access_token, user, max_workers=6):
                 parsed_url.fragment
             ))
             
+            # Get recording type if available (e.g., "gallery_view", "speaker_view", "shared_screen_with_speaker_view")
+            recording_type = f.get("recording_type", "")
+            
             video_urls.append({
                 "url": authenticated_url,
                 "topic": topic,
                 "date": date,
                 "file_id": f.get("id", "unknown"),
                 "file_size": f.get("file_size", 0),
-                "duration": rec.get("duration", 0)
+                "duration": rec.get("duration", 0),
+                "recording_type": recording_type  # Add recording type to distinguish multiple files per meeting
             })
     
     return video_urls

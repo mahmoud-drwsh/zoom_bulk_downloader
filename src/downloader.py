@@ -45,10 +45,17 @@ def download_video(video_info, download_dir, max_retries=3):
     topic = video_info.get('topic', 'Untitled')
     date = video_info.get('date', 'unknown_date')
     file_id = video_info.get('file_id', 'unknown')
+    recording_type = video_info.get('recording_type', '')
     
-    # Create filename: topic_date_fileid.mp4
+    # Create filename: topic_date_[recording_type_]fileid.mp4
+    # If multiple files exist for the same meeting, recording_type helps distinguish them
     safe_topic = sanitize_filename(topic)
-    filename = f"{safe_topic}_{date}_{file_id}.mp4"
+    if recording_type:
+        # Sanitize recording type and add to filename
+        safe_recording_type = sanitize_filename(recording_type).replace('_', '-')
+        filename = f"{safe_topic}_{date}_{safe_recording_type}_{file_id}.mp4"
+    else:
+        filename = f"{safe_topic}_{date}_{file_id}.mp4"
     filepath = download_dir / filename
     
     # Skip if file already exists

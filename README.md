@@ -7,8 +7,9 @@ A Python application that automatically discovers and downloads all Zoom recordi
 - 🔍 **Automatic Discovery**: Finds all Zoom recordings across all users in your account
 - 📅 **Time Range**: Searches the past 12 months of recordings
 - ⚡ **Parallel Processing**: Downloads multiple videos simultaneously for faster performance
+- 🎥 **Multiple Files Per Meeting**: Handles meetings with multiple recording files (gallery view, speaker view, shared screen, etc.)
 - 🔐 **Secure**: Uses environment variables for credentials (never hardcoded)
-- 📁 **Organized**: Creates timestamped directories for each download session
+- 📁 **Organized**: Creates timestamped directories for each download session with descriptive filenames
 - ✅ **Error Handling**: Retries failed downloads and provides detailed error reporting
 - 📊 **Progress Tracking**: Shows download progress for large files
 
@@ -169,6 +170,16 @@ You can modify download behavior in `main.py`:
 ### Date Range
 
 To change the time range of recordings, modify `get_month_ranges_for_past_year()` in `src/date_utils.py`. Currently set to the past 12 months.
+
+### Multiple Files Per Meeting
+
+Zoom meetings can have multiple recording files (e.g., gallery view, speaker view, shared screen with speaker view, etc.). The script automatically handles this by:
+
+- Processing each file in the `recording_files` array separately
+- Including the recording type in the filename (e.g., `Meeting_2024-01-15_gallery-view_abc123.mp4`)
+- Using unique file IDs to ensure no conflicts between files from the same meeting
+
+All MP4 video files from a meeting will be downloaded, with filenames that distinguish them by their recording type.
 
 ## Troubleshooting
 

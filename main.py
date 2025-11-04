@@ -43,7 +43,9 @@ def main():
     print(f"URLs written to urls.txt\n")
     
     for idx, video in enumerate(all_video_urls, 1):
-        print(f"{idx}. {video['topic']} ({video['date']})")
+        recording_type = video.get('recording_type', '')
+        type_info = f" ({recording_type})" if recording_type else ""
+        print(f"{idx}. {video['topic']} ({video['date']}){type_info}")
         print(f"   URL: {video['url']}")
         print(f"   File ID: {video['file_id']}, Size: {video['file_size']} bytes, Duration: {video['duration']} minutes")
         print()
