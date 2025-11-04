@@ -1,9 +1,10 @@
-"""Main entry point for Zoom recording URL listing."""
+"""Main entry point for Zoom recording URL listing and downloading."""
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.auth import get_access_token
 from src.api_client import list_users
 from src.video_urls import list_video_urls_for_user
+from src.downloader import download_all_videos
 from src.utils import debug
 
 
@@ -46,6 +47,30 @@ def main():
         print(f"   URL: {video['url']}")
         print(f"   File ID: {video['file_id']}, Size: {video['file_size']} bytes, Duration: {video['duration']} minutes")
         print()
+    
+    # Download all videos
+    if all_video_urls:
+        print("\n" + "="*80)
+        print("Starting video downloads...")
+        print("="*80 + "\n")
+        
+        successful, failed, download_dir = download_all_videos(all_video_urls, max_workers=5)
+        
+        print("\n" + "="*80)
+        print("Download Summary")
+        print("="*80)
+        print(f"Successful downloads: {len(successful)}")
+        print(f"Failed downloads: {len(failed)}")
+        print(f"Download directory: {download_dir}")
+        print("="*80 + "\n")
+        
+        if failed:
+            print("Failed downloads:")
+            for video, error in failed:
+                print(f"  - {video.get('topic', 'Unknown')} ({video.get('date', 'unknown')}): {error}")
+            print()
+    else:
+        print("No videos to download.\n")
 
 
 if __name__ == "__main__":
